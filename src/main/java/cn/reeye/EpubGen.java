@@ -25,7 +25,7 @@ public class EpubGen {
 //        String outputPath = "C:\\Users\\Reeye\\Desktop\\tmp";
 
         if (args.length < 3) {
-            System.out.println("用法: java -jar cn.reeye.EpubGen.jar 书籍URL 缓存目录 输出地址");
+            System.out.println("用法: java -jar EpubGen.jar 书籍URL 缓存目录 输出地址");
             System.out.println("注意: 输出地址不可在缓存目录下, 且不可相同!");
             return;
         }
