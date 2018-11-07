@@ -7,6 +7,7 @@ import org.jsoup.select.Elements;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.net.URI;
 import java.net.URL;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -77,7 +78,7 @@ public class EpubGen {
         //  chapter
         String chapterPath = tempPath + File.separator + "chapter";
         new File(chapterPath).mkdirs();
-        String chapter_template = readFile(resPath + "chapter" + File.separator + "chapter_template.xhtml");
+        String chapter_template = readFile("/res/chapter/chapter_template.xhtml");
         for (int i = 0; i < book.chapters.size(); i++) {
             String content = chapter_template.replaceAll("\\{\\{title}}", book.chapters.get(i).title)
                     .replaceAll("\\{\\{content}}", book.chapters.get(i).content)
@@ -88,12 +89,12 @@ public class EpubGen {
         // container.xml
         String metainfPath = tempPath + File.separator + "META-INF";
         new File(metainfPath).mkdirs();
-        String container_xml = readFile(resPath + "META-INF" + File.separator + "container.xml");
+        String container_xml = readFile("/res/META-INF/container.xml");
         writeNewFile(metainfPath + File.separator + "container.xml", container_xml);
 
         // catalog.xhtml
         // <li class="catalog"><a href="chapter/chapter_191573906.xhtml">第一章 书生孟浩</a></li>
-        String catalog_xhtml = readFile(resPath + File.separator + "catalog.xhtml");
+        String catalog_xhtml = readFile("/res/catalog.xhtml");
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < book.chapters.size(); i++) {
             sb.append("<li class=\"catalog\"><a href=\"chapter/chapter_" + (i + 1) + ".xhtml\">" + book.chapters.get(i).title + "</a></li>");
@@ -105,7 +106,7 @@ public class EpubGen {
         // content.opf
         // item:   <item href="chapter/chapter_191573906.xhtml" id="id191573906" media-type="application/xhtml+xml"/>
         // itemref:     <itemref idref="id191573906"/>
-        String content_opf = readFile(resPath + File.separator + "content.opf");
+        String content_opf = readFile("/res/content.opf");
         String content_opf_content = content_opf.replaceAll("\\{\\{bookName}}", book.bookName)
                 .replaceAll("\\{\\{author}}", book.author)
                 .replaceAll("\\{\\{time}}", Instant.now().toString());
@@ -126,22 +127,22 @@ public class EpubGen {
         ImageIO.write(image, "jpg", new File(workDic + File.separator + "cover.jpg"));
 
         // mimetype
-        String mimetype = readFile(resPath + File.separator + "mimetype");
+        String mimetype = readFile("/res/mimetype");
         writeNewFile(tempPath + File.separator + "mimetype", mimetype);
 
         // page.xhtml
-        String page_xhtml = readFile(resPath + File.separator + "page.xhtml");
+        String page_xhtml = readFile("/res/page.xhtml");
         writeNewFile(tempPath + File.separator + "page.xhtml", page_xhtml.replaceAll("\\{\\{bookName}}", book.bookName)
                 .replaceAll("\\{\\{author}}", book.author)
                 .replaceAll("\\{\\{intro}}", book.intro));
 
         // stylesheet.css
-        String stylesheet_css = readFile(resPath + File.separator + "stylesheet.css");
+        String stylesheet_css = readFile("/res/stylesheet.css");
         writeNewFile(tempPath + File.separator + "stylesheet.css", stylesheet_css);
 
         // toc.ncx
         // <navPoint id="chapter_191573906" playOrder="1"><navLabel><text>第一章 书生孟浩</text></navLabel><content src="chapter/chapter_191573906.xhtml"/></navPoint>
-        String toc_ncx = readFile(resPath + File.separator + "toc.ncx");
+        String toc_ncx = readFile("/res/toc.ncx");
         String toc_ncx_content = toc_ncx.replaceAll("\\{\\{bookName}}", book.bookName)
                 .replaceAll("\\{\\{author}}", book.author);
         sb.delete(0, sb.length());
@@ -171,9 +172,10 @@ public class EpubGen {
 
     private static String readFile(String filePath) {
         try {
-            return new BufferedReader(new FileReader(filePath)).lines()
+            InputStream is = EpubGen.class.getResourceAsStream(filePath);
+            return new BufferedReader(new InputStreamReader(is)).lines()
                     .reduce("", (pre, curr) -> (pre.equals("") ? "" : pre + System.getProperty("line.separator")) + curr);
-        } catch (FileNotFoundException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
