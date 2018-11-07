@@ -72,9 +72,6 @@ public class EpubGen {
             workDic.mkdirs();
         }
 
-        String classesPath = EpubGen.class.getClass().getResource("/").getPath();
-        String resPath = classesPath + "res" + File.separator;
-
         //  chapter
         String chapterPath = tempPath + File.separator + "chapter";
         new File(chapterPath).mkdirs();
