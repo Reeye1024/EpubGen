@@ -7,7 +7,6 @@ import org.jsoup.select.Elements;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.net.URI;
 import java.net.URL;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -21,52 +20,59 @@ public class EpubGen {
 
     @SuppressWarnings("all")
     public static void main(String[] args) throws Exception {
-//        String bookUrl = "https://www.bqg99.cc/book/5677672/";
-//        String tempPath = "C:\\Users\\Reeye\\Desktop\\tmp\\epub";
-//        String outputPath = "C:\\Users\\Reeye\\Desktop\\tmp";
+        String bookUrl = "https://www.bqg99.cc/book/1008775078/";
+        String tempPath = "C:\\Users\\Reeye\\Desktop\\tmp\\epub";
+        String outputPath = "C:\\Users\\Reeye\\Desktop\\tmp";
 
-        if (args.length < 3) {
-            System.out.println("用法: java -jar EpubGen.jar 书籍URL 缓存目录 输出地址");
-            System.out.println("注意: 输出地址不可在缓存目录下, 且不可相同!");
-            return;
-        }
-
-        String bookUrl = args[0];
-        String tempPath = args[1];
-        String outputPath = args[2];
-        
-        Document bookDoc = Jsoup.connect(bookUrl).get();
+//        if (args.length < 3) {
+//            System.out.println("用法: java -jar EpubGen.jar 书籍URL 缓存目录 输出地址");
+//            System.out.println("注意: 输出地址不可在缓存目录下, 且不可相同!");
+//            return;
+//        }
+//
+//        String bookUrl = args[0];
+//        String tempPath = args[1];
+//        String outputPath = args[2];
 
         Book book = new Book();
-        book.bookName = bookDoc.select("div.book>.info>h1").text();
-        book.author = bookDoc.select("div.book>.info>.small>span").get(0).text();
-        book.intro = bookDoc.select("div.book>.info>.intro").get(0).text();
-        book.imgUrl = bookDoc.select("div.book>.info>.cover>img").get(0).attr("src");
-        System.out.println("获取到书籍信息: \n" + book);
 
-        String firstUrl = bookDoc.select("div.listmain>dl>dd").get(0).select("a").attr("href");
-        while (true) {
-            try {
-                Document document = Jsoup.connect(firstUrl).get();
-                Elements titleDom = document.select("div.content>h1");
-                Elements contentDom = document.select("div#content");
-                String content = contentDom.get(0).html().replaceAll("((<br\\s?>)|\n)+", "<br/>");
-                Book.Chapter chapter = new Book.Chapter(titleDom.text(), content);
-                System.out.println("获取到章节: " + chapter.title);
-                book.chapters.add(chapter);
-                String nextUrl = document.select("div.page_chapter>ul>li").get(2).select("a").attr("href");
-                if (!nextUrl.endsWith(".html")) {
-                    break;
-                } else {
-                    firstUrl = nextUrl;
+        File tempBook = new File(outputPath + File.separator + "book.temp");
+        if (!tempBook.exists()) {
+            Document bookDoc = Jsoup.connect(bookUrl).get();
+            book.bookName = bookDoc.select("div.book>.info>h1").text();
+            book.author = bookDoc.select("div.book>.info>.small>span").get(0).text();
+            book.intro = bookDoc.select("div.book>.info>.intro").get(0).text();
+            book.imgUrl = bookDoc.select("div.book>.info>.cover>img").get(0).attr("src");
+            System.out.println("获取到书籍信息: \n" + book);
+
+            String firstUrl = bookDoc.select("div.listmain>dl>dd").get(0).select("a").attr("href");
+            while (true) {
+                try {
+                    Document document = Jsoup.connect(firstUrl).get();
+                    Elements titleDom = document.select("div.content>h1");
+                    Elements contentDom = document.select("div#content");
+                    String content = contentDom.get(0).html().replaceAll("((<br\\s?>)|\n)+", "<br/>");
+                    Book.Chapter chapter = new Book.Chapter(titleDom.text(), content);
+                    System.out.println("获取到章节: " + chapter.title);
+                    book.chapters.add(chapter);
+                    String nextUrl = document.select("div.page_chapter>ul>li").get(2).select("a").attr("href");
+                    if (!nextUrl.endsWith(".html")) {
+                        break;
+                    } else {
+                        firstUrl = nextUrl;
+                    }
+                } catch (IOException e) {
+                    System.out.println(e.getMessage() + "\n出错, 1s后继续");
+                    Thread.sleep(1000L);
                 }
-            } catch (IOException e) {
-                System.out.println(e.getMessage() + "\n出错, 1s后继续");
-                Thread.sleep(1000L);
             }
+            System.out.println("章节获取完毕~");
+            ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(tempBook));
+            oos.writeObject(book);
+        } else {
+            book = (Book) new ObjectInputStream(new FileInputStream(tempBook)).readObject();
         }
-        System.out.println("章节获取完毕~");
-        
+
         File workDic = new File(tempPath);
         if (!workDic.exists()) {
             workDic.mkdirs();
@@ -78,7 +84,7 @@ public class EpubGen {
         String chapter_template = readFile("/res/chapter/chapter_template.xhtml");
         for (int i = 0; i < book.chapters.size(); i++) {
             String content = chapter_template.replaceAll("\\{\\{title}}", book.chapters.get(i).title)
-                    .replaceAll("\\{\\{content}}", book.chapters.get(i).content)
+                    .replace("{{content}}", book.chapters.get(i).content)
                     .replaceAll("\\{\\{bookName}}", book.bookName);
             writeNewFile(chapterPath + File.separator + "chapter_" + (i + 1) + ".xhtml", content);
         }
@@ -153,6 +159,26 @@ public class EpubGen {
         ZipCompressor zc = new ZipCompressor(outputPath + File.separator + book.bookName + ".epub");
         zc.compressAllChildren(tempPath);
 
+        // 删除temp
+        if (tempBook.exists()) {
+            tempBook.delete();
+        }
+        delAllFiles(new File(tempPath));
+    }
+
+    @SuppressWarnings("all")
+    private static void delAllFiles(File f) {
+        if (f.exists()) {
+            if (f.isDirectory()) {
+                File[] arr = f.listFiles();
+                if (arr.length > 0) {
+                    for (int i = 0; i < arr.length; i++) {
+                        delAllFiles(arr[i]);
+                    }
+                }
+            }
+            f.delete();
+        }
     }
 
     private static void writeNewFile(String filePath, String content) {
@@ -178,7 +204,7 @@ public class EpubGen {
         return null;
     }
 
-    static class Book {
+    static class Book implements Serializable {
         private String bookName;
         private String author;
         private String intro;
@@ -196,7 +222,7 @@ public class EpubGen {
                     '}';
         }
 
-        static class Chapter {
+        static class Chapter implements Serializable {
             private String title;
             private String content;
 
