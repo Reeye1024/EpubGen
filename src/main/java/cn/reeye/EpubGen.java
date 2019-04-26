@@ -20,9 +20,11 @@ public class EpubGen {
 
     @SuppressWarnings("all")
     public static void main(String[] args) throws Exception {
-        String bookUrl = "https://www.bqg99.cc/book/1008775078/";
-        String tempPath = "C:\\Users\\Reeye\\Desktop\\tmp\\epub";
-        String outputPath = "C:\\Users\\Reeye\\Desktop\\tmp";
+        String bookUrl = "https://www.bqg99.cc/book/1847953/";
+//        String tempPath = "C:\\Users\\Reeye\\Desktop\\tmp\\epub";
+//        String outputPath = "C:\\Users\\Reeye\\Desktop\\tmp";
+        String tempPath = "/Users/reeye/Downloads/epub/tmp";
+        String outputPath = "/Users/reeye/Downloads/epub";
 
 //        if (args.length < 3) {
 //            System.out.println("用法: java -jar EpubGen.jar 书籍URL 缓存目录 输出地址");
