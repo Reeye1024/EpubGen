@@ -16,11 +16,11 @@ import java.util.List;
  * Created by Reeye on 2018/7/4 11:06
  * Nothing is true but improving yourself.
  */
-public class EpubGen {
+public class EpubGen2 {
 
     @SuppressWarnings("all")
     public static void main(String[] args) throws Exception {
-        String bookUrl = "https://www.bqg99.cc/book/7506922/";
+        String bookUrl = "https://www.biquge.cm/10/10473/";
 //        String tempPath = "C:\\Users\\Reeye\\Desktop\\tmp\\epub";
 //        String outputPath = "C:\\Users\\Reeye\\Desktop\\tmp";
         String tempPath = "/Users/reeye/Downloads/epub/tmp";
@@ -41,27 +41,36 @@ public class EpubGen {
         File tempBook = new File(outputPath + File.separator + "book.temp");
         if (!tempBook.exists()) {
             Document bookDoc = Jsoup.connect(bookUrl).get();
-            book.bookName = bookDoc.select("div.book>.info>h1").text();
-            book.author = bookDoc.select("div.book>.info>.small>span").get(0).text();
-            book.intro = bookDoc.select("div.book>.info>.intro").get(0).text();
-            book.imgUrl = bookDoc.select("div.book>.info>.cover>img").get(0).attr("src");
+            book.bookName = bookDoc.select("div#maininfo>#info>h1").text();
+            book.author = bookDoc.select("div#maininfo>#info>p").get(0).text();
+            book.intro = bookDoc.select("div#intro>p").get(0).text();
+            book.imgUrl = bookDoc.select("div#fmimg>img").get(0).attr("src");
+            String domain = bookUrl.replaceAll("\\b/.*", "");
+            if (book.imgUrl.startsWith("/")) {
+                book.imgUrl = domain + book.imgUrl;
+            }
             System.out.println("获取到书籍信息: \n" + book);
-
-            String firstUrl = bookDoc.select("div.listmain>dl>dd").get(0).select("a").attr("href");
+            String firstUrl = bookDoc.select("div#list>dl>dd").get(0).select("a").attr("href");
             while (true) {
                 try {
+                    if (firstUrl.startsWith("/")) {
+                        firstUrl = domain + firstUrl;
+                    }
                     Document document = Jsoup.connect(firstUrl).get();
-                    Elements titleDom = document.select("div.content>h1");
+                    Elements titleDom = document.select("div.box_con>.bookname>h1");
                     Elements contentDom = document.select("div#content");
                     String content = contentDom.get(0).html().replaceAll("((<br\\s?>)|\n)+", "<br/>");
                     Book.Chapter chapter = new Book.Chapter(titleDom.text(), content);
                     System.out.println("获取到章节: " + chapter.title);
                     book.chapters.add(chapter);
-                    String nextUrl = document.select("div.page_chapter>ul>li").get(2).select("a").attr("href");
+                    String nextUrl = document.select("div.box_con>div.bottem2>a").get(3).attr("href");
                     if (!nextUrl.endsWith(".html")) {
                         break;
                     } else {
                         firstUrl = nextUrl;
+                        if (firstUrl.startsWith("/")) {
+                            firstUrl = domain + firstUrl;
+                        }
                     }
                 } catch (IOException e) {
                     System.out.println(e.getMessage() + "\n出错, 1s后继续");
@@ -197,7 +206,7 @@ public class EpubGen {
 
     private static String readFile(String filePath) {
         try {
-            InputStream is = EpubGen.class.getResourceAsStream(filePath);
+            InputStream is = EpubGen2.class.getResourceAsStream(filePath);
             return new BufferedReader(new InputStreamReader(is)).lines()
                     .reduce("", (pre, curr) -> (pre.equals("") ? "" : pre + System.getProperty("line.separator")) + curr);
         } catch (Exception e) {
@@ -231,6 +240,14 @@ public class EpubGen {
             Chapter(String title, String content) {
                 this.title = title;
                 this.content = content;
+            }
+
+            @Override
+            public String toString() {
+                return "Chapter{" +
+                        "title='" + title + '\'' +
+                        ", content='" + content + '\'' +
+                        '}';
             }
         }
     }
