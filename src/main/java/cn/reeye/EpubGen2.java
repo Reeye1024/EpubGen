@@ -11,6 +11,7 @@ import java.net.URL;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Reeye on 2018/7/4 11:06
@@ -20,11 +21,11 @@ public class EpubGen2 {
 
     @SuppressWarnings("all")
     public static void main(String[] args) throws Exception {
-        String bookUrl = "https://www.biquge.cm/10/10473/";
-//        String tempPath = "C:\\Users\\Reeye\\Desktop\\tmp\\epub";
-//        String outputPath = "C:\\Users\\Reeye\\Desktop\\tmp";
-        String tempPath = "/Users/reeye/Downloads/epub/tmp";
-        String outputPath = "/Users/reeye/Downloads/epub";
+        String bookUrl = "https://www.biquge.com/102_102818/";
+        String tempPath = "C:\\Users\\Reeye\\Desktop\\tmp\\epub";
+        String outputPath = "C:\\Users\\Reeye\\Desktop\\tmp";
+//        String tempPath = "/Users/reeye/Downloads/epub/tmp";
+//        String outputPath = "/Users/reeye/Downloads/epub";
 
 //        if (args.length < 3) {
 //            System.out.println("用法: java -jar EpubGen.jar 书籍URL 缓存目录 输出地址");
@@ -43,14 +44,18 @@ public class EpubGen2 {
             Document bookDoc = Jsoup.connect(bookUrl).get();
             book.bookName = bookDoc.select("div#maininfo>#info>h1").text();
             book.author = bookDoc.select("div#maininfo>#info>p").get(0).text();
-            book.intro = bookDoc.select("div#intro>p").get(0).text();
+            book.intro = bookDoc.select("div#intro").get(0).text();
             book.imgUrl = bookDoc.select("div#fmimg>img").get(0).attr("src");
             String domain = bookUrl.replaceAll("\\b/.*", "");
-            if (book.imgUrl.startsWith("/")) {
+            if (book.imgUrl.startsWith("//")) {
+                book.imgUrl = "https:" + book.imgUrl;
+            } else if (book.imgUrl.startsWith("/")) {
                 book.imgUrl = domain + book.imgUrl;
             }
             System.out.println("获取到书籍信息: \n" + book);
-            String firstUrl = bookDoc.select("div#list>dl>dd").get(0).select("a").attr("href");
+            TimeUnit.SECONDS.sleep(1);
+//            String firstUrl = bookDoc.select("div#list>dl>dd").get(0).select("a").attr("href");
+            String firstUrl = "/102_102818/5268263.html";
             while (true) {
                 try {
                     if (firstUrl.startsWith("/")) {
@@ -63,7 +68,7 @@ public class EpubGen2 {
                     Book.Chapter chapter = new Book.Chapter(titleDom.text(), content);
                     System.out.println("获取到章节: " + chapter.title);
                     book.chapters.add(chapter);
-                    String nextUrl = document.select("div.box_con>div.bottem2>a").get(3).attr("href");
+                    String nextUrl = document.select("div.box_con>div.bottem2>a.next").get(0).attr("href");
                     if (!nextUrl.endsWith(".html")) {
                         break;
                     } else {
@@ -138,6 +143,7 @@ public class EpubGen2 {
 
         // cover.jpg
         BufferedImage image = ImageIO.read(new URL(book.imgUrl));
+//        BufferedImage image = ImageIO.read(new File("C:\\Users\\Reeye\\Desktop\\tmp\\465.jpg"));
         ImageIO.write(image, "jpg", new File(workDic + File.separator + "cover.jpg"));
 
         // mimetype
